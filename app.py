@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import datetime
 
-# Configuración para aprovechar toda la pantalla
 st.set_page_config(layout="wide", page_title="Handball Tagger Pro")
 
 if 'eventos' not in st.session_state:
@@ -10,79 +9,87 @@ if 'eventos' not in st.session_state:
 
 st.title("Panel de Análisis Táctico")
 
-# 4. Selector de modos de análisis recuperado
-modo = st.radio("Modo de Análisis:", ["URL YouTube", "Video Local", "Tiempo Real (Sin Video)"], horizontal=True)
+modo = st.radio("Modo:", ["URL YouTube", "Video Local", "Tiempo Real"], horizontal=True)
 
-# Distribución compacta para no tener que hacer scroll
 col_video, col_datos = st.columns([1.5, 1])
 
 with col_video:
     if modo == "URL YouTube":
-        url = st.text_input("URL de YouTube:", placeholder="Pega el enlace aquí")
+        url = st.text_input("URL de YouTube:")
         if url:
-            # 1. Corrección automática para enlaces de transmisiones en vivo (/live/)
-            if "/live/" in url:
+            if "/live/" in url: 
                 url = url.replace("/live/", "/watch?v=")
-            
             st.video(url)
-            st.info("💡 **Controles de YouTube:** Usa el reproductor del video para Play/Pausa. Para 'Slow Motion', haz clic en el ícono de engranaje (⚙️) dentro del video y ajusta la 'Velocidad de reproducción'.")
             
     elif modo == "Video Local":
-        archivo = st.file_uploader("Sube el video temporalmente (Solo para recortes)", type=["mp4"])
+        archivo = st.file_uploader("Sube el video", type=["mp4"])
         if archivo:
             st.video(archivo)
-            st.info("💡 **Controles Locales:** Usa el menú de 3 puntos (⋮) en la esquina del reproductor para ajustar la velocidad del video.")
-            
-    else:
-        st.info("Modo Tiempo Real. Interfaz optimizada para captura rápida.")
 
     if len(st.session_state.eventos) > 0:
         df = pd.DataFrame(st.session_state.eventos)
-        st.dataframe(df, height=150, use_container_width=True)
+        st.dataframe(df, height=200, use_container_width=True)
         csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Descargar CSV", data=csv, file_name='taggeo.csv', mime='text/csv')
+        st.download_button("📥 Descargar CSV", data=csv, file_name='taggeo_partido.csv', mime='text/csv')
 
 with col_datos:
-    st.markdown("### Registro Rápido")
+    st.markdown("### Selecciones (1 Toque)")
     
-    with st.form("registro_form", clear_on_submit=True):
-        c_eq, c_fa, c_re = st.columns(3)
-        with c_eq: equipo = st.radio("Eq", ["BER", "GUA"], horizontal=True)
-        with c_fa: fase = st.radio("Fase", ["Pos", "Tra"], horizontal=True)
-        with c_re: res = st.radio("Res", ["Gol", "No Gol"], horizontal=True)
-        
-        c_err, c_tip = st.columns(2)
-        with c_err: error = st.radio("Err", ["N/A", "Per", "Par", "Fue"], horizontal=True)
-        with c_tip: tipo = st.radio("Tipo", ["Lar", "Ext", "Pen", "Pip", "Unf"], horizontal=True)
-        
-        st.markdown("---")
-        
-        # 2. Selector de zona que NO envía el formulario automáticamente
-        zona = st.selectbox("🥅 Zona de Portería:", [
-            "N/A", 
-            "Z1 (Sup-Izq ↖️)", "Z2 (Sup-Cen ⬆️)", "Z3 (Sup-Der ↗️)", 
-            "Z4 (Med-Izq ⬅️)", "Z5 (Med-Cen ⏺️)", "Z6 (Med-Der ➡️)", 
-            "Z7 (Inf-Izq ↙️)", "Z8 (Inf-Cen ⬇️)", "Z9 (Inf-Der ↘️)"
-        ])
-        
-        st.markdown("---")
-        
-        # 3. Sección Extra recuperada para el número de jugadora
-        extra = st.text_input("Extra (Jugadora/Notas):", placeholder="Ej. Dorsal 14")
-        
-        # 2. Botón principal destacado con un color diferente (type="primary")
-        submit = st.form_submit_button("✅ REGISTRAR EVENTO", type="primary", use_container_width=True)
+    # Al eliminar st.form, cada clic se guarda en memoria automáticamente
+    c_eq, c_fa = st.columns(2)
+    with c_eq: equipo = st.radio("Eq", ["BER", "GUA"], horizontal=True)
+    with c_fa: fase = st.radio("Fase", ["Pos", "Tra"], horizontal=True)
+    
+    c_re, c_err = st.columns(2)
+    with c_re: res = st.radio("Res", ["Gol", "No Gol"], horizontal=True)
+    with c_err: error = st.radio("Err", ["N/A", "Per", "Par", "Fue"], horizontal=True)
+    
+    tipo = st.radio("Tipo", ["Lar", "Ext", "Pen", "Pip", "Unf"], horizontal=True)
+    
+    extra = st.text_input("Extra (Jugadora/Notas):")
+    
+    st.markdown("---")
+    st.write("🥅 **Matriz de Portería (El toque registra la jugada)**")
+    
+    # Botones independientes. Hacer clic en cualquiera ejecuta el registro.
+    z_sup = st.columns(3)
+    z1 = z_sup[0].button("Z1 ↖️", use_container_width=True)
+    z2 = z_sup[1].button("Z2 ⬆️", use_container_width=True)
+    z3 = z_sup[2].button("Z3 ↗️", use_container_width=True)
+    
+    z_med = st.columns(3)
+    z4 = z_med[0].button("Z4 ⬅️", use_container_width=True)
+    z5 = z_med[1].button("Z5 ⏺️", use_container_width=True)
+    z6 = z_med[2].button("Z6 ➡️", use_container_width=True)
+    
+    z_inf = st.columns(3)
+    z7 = z_inf[0].button("Z7 ↙️", use_container_width=True)
+    z8 = z_inf[1].button("Z8 ⬇️", use_container_width=True)
+    z9 = z_inf[2].button("Z9 ↘️", use_container_width=True)
+    
+    btn_sin_tiro = st.button("✅ Registrar Jugada (Sin Tiro)", type="primary", use_container_width=True)
 
-        if submit:
-            nuevo = {
-                "Time": datetime.datetime.now().strftime("%H:%M:%S"),
-                "Eq": equipo,
-                "Fase": fase,
-                "Res": res,
-                "Err": error if error != "N/A" else "",
-                "Tipo": tipo,
-                "Zona": zona[:2] if zona != "N/A" else "",
-                "Extra": extra
-            }
-            st.session_state.eventos.append(nuevo)
-            st.rerun()
+    zona_sel = None
+    if z1: zona_sel = "Z1"
+    elif z2: zona_sel = "Z2"
+    elif z3: zona_sel = "Z3"
+    elif z4: zona_sel = "Z4"
+    elif z5: zona_sel = "Z5"
+    elif z6: zona_sel = "Z6"
+    elif z7: zona_sel = "Z7"
+    elif z8: zona_sel = "Z8"
+    elif z9: zona_sel = "Z9"
+
+    if zona_sel or btn_sin_tiro:
+        nuevo = {
+            "Time": datetime.datetime.now().strftime("%H:%M:%S"),
+            "Eq": equipo,
+            "Fase": fase,
+            "Res": res,
+            "Err": error if error != "N/A" else "",
+            "Tipo": tipo,
+            "Zona": zona_sel if zona_sel else "N/A",
+            "Extra": extra
+        }
+        st.session_state.eventos.append(nuevo)
+        st.rerun()
