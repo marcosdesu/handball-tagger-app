@@ -4,135 +4,72 @@ import datetime
 
 st.set_page_config(layout="wide", page_title="Handball Tagger Pro")
 
-# 1. Inicializar la memoria de datos y el estado visual de los botones
 if 'eventos' not in st.session_state:
     st.session_state.eventos = []
 
-estados_iniciales = {'Eq': 'LOC', 'Fase': 'Pos', 'Res': 'Gol', 'Err': 'N/A', 'Tipo': 'Lar'}
-for k, v in estados_iniciales.items():
-    if k not in st.session_state:
-        st.session_state[k] = v
+# Estado inicial
+estados = {'Eq': 'LOC', 'Res': 'Gol', 'Fase': 'Pos', 'Err': 'N/A', 'Tipo': 'Lar', 'Lado': 'Cent'}
+for k, v in estados.items():
+    if k not in st.session_state: st.session_state[k] = v
 
-# Función para cambiar el color del botón seleccionado sin recargar toda la página
-def set_opcion(categoria, valor):
-    st.session_state[categoria] = valor
+def set_opcion(cat, val): st.session_state[cat] = val
 
 st.title("Panel de Análisis Táctico")
-
 modo = st.radio("Modo:", ["URL YouTube", "Video Local", "Tiempo Real"], horizontal=True)
 
 col_video, col_datos = st.columns([1.5, 1])
 
 with col_video:
     if modo == "URL YouTube":
-        url = st.text_input("URL de YouTube:")
-        if url:
+        url = st.text_input("URL:")
+        if url: 
             if "/live/" in url: url = url.replace("/live/", "/watch?v=")
             st.video(url)
     elif modo == "Video Local":
-        archivo = st.file_uploader("Sube el video", type=["mp4"])
+        archivo = st.file_uploader("Video:", type=["mp4"])
         if archivo: st.video(archivo)
+    
+    # 1. Configuración de equipos debajo del video
+    st.markdown("### Equipos")
+    c_loc, c_vis = st.columns(2)
+    eq_loc = c_loc.text_input("Local:", "LOC", max_chars=3).upper()
+    eq_vis = c_vis.text_input("Visita:", "VIS", max_chars=3).upper()
 
     if len(st.session_state.eventos) > 0:
         df = pd.DataFrame(st.session_state.eventos)
         st.dataframe(df, height=200, use_container_width=True)
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Descargar CSV", data=csv, file_name='taggeo_partido.csv', mime='text/csv')
+        st.download_button("📥 Descargar CSV", data=df.to_csv(index=False).encode('utf-8'), file_name='partido.csv', mime='text/csv')
 
 with col_datos:
-    st.markdown("### Configuración de Equipos")
-    c_loc, c_vis = st.columns(2)
-    eq_loc = c_loc.text_input("Eq. Local (3 letras):", "LOC", max_chars=3).upper()
-    eq_vis = c_vis.text_input("Eq. Visita (3 letras):", "VIS", max_chars=3).upper()
+    # 2. Orden estricto solicitado
+    def btn_g(lab, cat, val, col):
+        col.button(lab, type="primary" if st.session_state[cat]==val else "secondary", 
+                   on_click=set_opcion, args=(cat, val), use_container_width=True)
 
-    st.markdown("### Selecciones (1 Toque)")
+    st.write("**Equipo**"); c=st.columns(2); btn_g(eq_loc,'Eq',eq_loc,c[0]); btn_g(eq_vis,'Eq',eq_vis,c[1])
+    st.write("**Resultado**"); c=st.columns(2); btn_g("Gol",'Res',"Gol",c[0]); btn_g("No gol",'Res',"No Gol",c[1])
+    st.write("**Fase**"); c=st.columns(2); btn_g("Pos",'Fase',"Pos",c[0]); btn_g("Tra",'Fase',"Tra",c[1])
+    st.write("**Error**"); c=st.columns(3); btn_g("Par",'Err',"Par",c[0]); btn_g("Per",'Err',"Per",c[1]); btn_g("Fue",'Err',"Fue",c[2])
+    st.write("**Tipo**"); c=st.columns(3); btn_g("Lar",'Tipo',"Lar",c[0]); btn_g("Pen",'Tipo',"Pen",c[1]); btn_g("Ext",'Tipo',"Ext",c[2]); btn_g("Piv",'Tipo',"Piv",c[3]); btn_g("Unf",'Tipo',"Unf",c[4]); btn_g("Dir",'Tipo',"Dir",c[5])
+    st.write("**Lado**"); c=st.columns(3); btn_g("Cent",'Lado',"Cent",c[0]); btn_g("Izq",'Lado',"Izq",c[1]); btn_g("Der",'Lado',"Der",c[2])
     
-    # Motor para dibujar botones que se iluminan al tocarlos
-    def dibujar_boton(label, categoria, valor_interno, col):
-        activo = st.session_state[categoria] == valor_interno
-        col.button(
-            label, 
-            type="primary" if activo else "secondary", 
-            on_click=set_opcion, 
-            args=(categoria, valor_interno),
-            use_container_width=True,
-            key=f"btn_{categoria}_{valor_interno}"
-        )
-
-    st.write("**Posesión**")
-    c1, c2 = st.columns(2)
-    dibujar_boton(eq_loc, 'Eq', eq_loc, c1)
-    dibujar_boton(eq_vis, 'Eq', eq_vis, c2)
-
-    st.write("**Fase y Resultado**")
-    c1, c2, c3, c4 = st.columns(4)
-    dibujar_boton("Pos", 'Fase', "Pos", c1)
-    dibujar_boton("Tra", 'Fase', "Tra", c2)
-    dibujar_boton("Gol", 'Res', "Gol", c3)
-    dibujar_boton("No Gol", 'Res', "No Gol", c4)
-
-    st.write("**Causa (Si es No Gol)**")
-    c1, c2, c3, c4 = st.columns(4)
-    dibujar_boton("N/A", 'Err', "N/A", c1)
-    dibujar_boton("Per", 'Err', "Per", c2)
-    dibujar_boton("Par", 'Err', "Par", c3)
-    dibujar_boton("Fue", 'Err', "Fue", c4)
-
-    st.write("**Tipo de Acción**")
-    c1, c2, c3, c4, c5 = st.columns(5)
-    dibujar_boton("Lar", 'Tipo', "Lar", c1)
-    dibujar_boton("Ext", 'Tipo', "Ext", c2)
-    dibujar_boton("Pen", 'Tipo', "Pen", c3)
-    dibujar_boton("Pip", 'Tipo', "Pip", c4)
-    dibujar_boton("Unf", 'Tipo', "Unf", c5)
-
+    extra = st.text_input("Extra:")
+    
     st.markdown("---")
-    st.write("🥅 **Matriz de Portería (El toque registra la jugada)**")
-    
-    z_sup = st.columns(3)
-    z1 = z_sup[0].button("Z1 ↖️", use_container_width=True)
-    z2 = z_sup[1].button("Z2 ⬆️", use_container_width=True)
-    z3 = z_sup[2].button("Z3 ↗️", use_container_width=True)
-    
-    z_med = st.columns(3)
-    z4 = z_med[0].button("Z4 ⬅️", use_container_width=True)
-    z5 = z_med[1].button("Z5 ⏺️", use_container_width=True)
-    z6 = z_med[2].button("Z6 ➡️", use_container_width=True)
-    
-    z_inf = st.columns(3)
-    z7 = z_inf[0].button("Z7 ↙️", use_container_width=True)
-    z8 = z_inf[1].button("Z8 ⬇️", use_container_width=True)
-    z9 = z_inf[2].button("Z9 ↘️", use_container_width=True)
-    
-    # Campo extra reubicado debajo de la portería
-    extra = st.text_input("Extra (Dorsal / Notas):")
-    
-    btn_sin_tiro = st.button("✅ Registrar Jugada (Sin Tiro)", type="primary", use_container_width=True)
+    st.write("🥅 **Matriz de Portería (Registra evento)**")
+    z = st.columns(3); z1=z[0].button("Z1"); z2=z[1].button("Z2"); z3=z[2].button("Z3")
+    z = st.columns(3); z4=z[0].button("Z4"); z5=z[1].button("Z5"); z6=z[2].button("Z6")
+    z = st.columns(3); z7=z[0].button("Z7"); z8=z[1].button("Z8"); z9=z[2].button("Z9")
+    btn_st = st.button("✅ REGISTRAR JUGADA", type="primary", use_container_width=True)
 
-    zona_sel = None
-    if z1: zona_sel = "Z1"
-    elif z2: zona_sel = "Z2"
-    elif z3: zona_sel = "Z3"
-    elif z4: zona_sel = "Z4"
-    elif z5: zona_sel = "Z5"
-    elif z6: zona_sel = "Z6"
-    elif z7: zona_sel = "Z7"
-    elif z8: zona_sel = "Z8"
-    elif z9: zona_sel = "Z9"
+    zona_sel = next((f"Z{i}" for i, b in enumerate([z1,z2,z3,z4,z5,z6,z7,z8,z9], 1) if b), None)
 
-    # Lógica de registro que jala los datos del estado iluminado
-    if zona_sel or btn_sin_tiro:
-        nuevo = {
+    if zona_sel or btn_st:
+        st.session_state.eventos.append({
             "Time": datetime.datetime.now().strftime("%H:%M:%S"),
-            "Eq": st.session_state.Eq,
-            "Fase": st.session_state.Fase,
-            "Res": st.session_state.Res,
+            "Eq": st.session_state.Eq, "Res": st.session_state.Res, "Fase": st.session_state.Fase,
             "Err": st.session_state.Err if st.session_state.Err != "N/A" else "",
-            "Tipo": st.session_state.Tipo,
-            "Zona": zona_sel if zona_sel else "N/A",
-            "Extra": extra
-        }
-        st.session_state.eventos.append(nuevo)
-        
-        # Opcional: Reiniciar la casilla extra después de guardar para agilizar la siguiente jugada
+            "Tipo": st.session_state.Tipo, "Lado": st.session_state.Lado,
+            "Zona": zona_sel if zona_sel else "N/A", "Extra": extra
+        })
         st.rerun()
