@@ -29,7 +29,6 @@ with col_video:
         archivo = st.file_uploader("Video:", type=["mp4"])
         if archivo: st.video(archivo)
     
-    # 1. Configuración de equipos debajo del video
     st.markdown("### Equipos")
     c_loc, c_vis = st.columns(2)
     eq_loc = c_loc.text_input("Local:", "LOC", max_chars=3).upper()
@@ -41,7 +40,6 @@ with col_video:
         st.download_button("📥 Descargar CSV", data=df.to_csv(index=False).encode('utf-8'), file_name='partido.csv', mime='text/csv')
 
 with col_datos:
-    # 2. Orden estricto solicitado
     def btn_g(lab, cat, val, col):
         col.button(lab, type="primary" if st.session_state[cat]==val else "secondary", 
                    on_click=set_opcion, args=(cat, val), use_container_width=True)
@@ -50,7 +48,12 @@ with col_datos:
     st.write("**Resultado**"); c=st.columns(2); btn_g("Gol",'Res',"Gol",c[0]); btn_g("No gol",'Res',"No Gol",c[1])
     st.write("**Fase**"); c=st.columns(2); btn_g("Pos",'Fase',"Pos",c[0]); btn_g("Tra",'Fase',"Tra",c[1])
     st.write("**Error**"); c=st.columns(3); btn_g("Par",'Err',"Par",c[0]); btn_g("Per",'Err',"Per",c[1]); btn_g("Fue",'Err',"Fue",c[2])
-    st.write("**Tipo**"); c=st.columns(3); btn_g("Lar",'Tipo',"Lar",c[0]); btn_g("Pen",'Tipo',"Pen",c[1]); btn_g("Ext",'Tipo',"Ext",c[2]); btn_g("Piv",'Tipo',"Piv",c[3]); btn_g("Unf",'Tipo',"Unf",c[4]); btn_g("Dir",'Tipo',"Dir",c[5])
+    
+    # Solución al IndexError: Dividido en 2 filas de 3
+    st.write("**Tipo**")
+    c1=st.columns(3); btn_g("Lar",'Tipo',"Lar",c1[0]); btn_g("Pen",'Tipo',"Pen",c1[1]); btn_g("Ext",'Tipo',"Ext",c1[2])
+    c2=st.columns(3); btn_g("Piv",'Tipo',"Piv",c2[0]); btn_g("Unf",'Tipo',"Unf",c2[1]); btn_g("Dir",'Tipo',"Dir",c2[2])
+    
     st.write("**Lado**"); c=st.columns(3); btn_g("Cent",'Lado',"Cent",c[0]); btn_g("Izq",'Lado',"Izq",c[1]); btn_g("Der",'Lado',"Der",c[2])
     
     extra = st.text_input("Extra:")
